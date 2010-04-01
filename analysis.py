@@ -57,6 +57,16 @@ def _relationship_ij( lineage, a, b ):
 import csv
 import mypy
 def relationship( out_file, cell_file, rows = (), cols = () ):
+	"""Generates a matrix which tells the relationship between one set of nodes
+	(rows) and another (cols). Entries in the matrix can be one of:
+		-1: separate branches
+		1:  self
+		0:  col is ancestor of row
+		2:  col is descendant of row
+	
+	If 'rows' is not specified then all the nodes from the 'cell_file' are
+	taken. Likewise for 'cols'.
+	"""
 	print "[ relationship ]"
 	print "	out_file :", out_file
 	print "	cell_file :", cell_file
