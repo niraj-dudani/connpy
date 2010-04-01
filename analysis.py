@@ -16,17 +16,18 @@ def compartment_lengths( out_file, model_dir, script = 'length.g' ):
 # Lineage
 #========
 import mypy
-def _lineage( tree_file )
+def _lineage( tree_file ):
 	lineage = {}
 	
 	tf = mypy.load_csv( tree_file, delimiter = '\t' )
 	for row in tf:
-		self, parent = row
+		self = row[ 0 ]
+		parent = row[ 1 ]
 		
 		if parent == 'none':
-				lineage[ self ] = []
-			else:
-				lineage[ self ] = lineage[ parent ] + [ parent ]
+			lineage[ self ] = []
+		else:
+			lineage[ self ] = lineage[ parent ] + [ parent ]
 	
 	#~ with open( tree_file ) as f:
 		#~ reader = csv.reader( f, delimiter = '\t' )
@@ -65,7 +66,7 @@ def relationship( out_file, cell_file, rows = (), cols = () ):
 	lineage = _lineage( cell_file )
 	
 	if rows == () or cols == ():
-		cf = mypy.load_csv( cell_file, delimiter = '\t', comment = '#', cast = float )
+		cf = mypy.load_csv( cell_file, delimiter = '\t', comment = '#', cast = str )
 		all_compts = [ c[ 0 ] for c in cf ]
 	
 	if isinstance( rows, str ):
@@ -84,7 +85,7 @@ def relationship( out_file, cell_file, rows = (), cols = () ):
 	
 	matrix = [ header ]
 	for i in rows:
-		row = []
+		row = [ i ]
 		for j in cols:
 			row.append( _relationship_ij( lineage, i, j ) )
 		
@@ -140,26 +141,13 @@ def distance( physical_out_file, electrotonic_out_file, cell_file, length_file, 
 	lineage = _lineage( cell_file )
 	
 	if reference == () or moving == ():
-		cf = mypy.load_csv( cell_file, delimiter = '\t', comment = '#', cast = float )
+		cf = mypy.load_csv( cell_file, delimiter = '\t', comment = '#', cast = str )
 		all_compts = [ c[ 0 ] for c in cf ]
 	
-	lf = mypy.load_csv( length_file, delimiter = ' ', comment = '#', cast = float )
+	lf = mypy.load_csv( length_file, delimiter = ' ', comment = '#', cast = str )
 	for row in lf:
 		self, physical, L, electrotonic = row
-		length[ self ] = ( physical, electrotonic )
-	
-	#~ reader = csv.reader( open( length_file ), delimiter = ' ' )
-	#~ for row in reader:
-		#~ self = row[ 0 ]
-		#~ 
-		#~ if ( self[ 0 ] == '#' ):
-			#~ continue
-		#~ 
-		#~ physical = float( row[ 1 ] )
-		#~ L = float( row[ 2 ] ) # lambda
-		#~ electrotonic = float( row[ 3 ] )
-		#~ 
-		#~ length[ self ] = ( physical, electrotonic )
+		length[ self ] = ( float( physical ), float( electrotonic ) )
 	
 	if isinstance( reference, str ):
 		reference = ( reference, )
@@ -172,7 +160,6 @@ def distance( physical_out_file, electrotonic_out_file, cell_file, length_file, 
 		moving = all_compts
 	
 	header = [ '#Compartment' ]
-	# should this be "for i in moving"?
 	for i in reference:
 		header.append( i )
 	
