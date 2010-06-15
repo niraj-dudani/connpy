@@ -51,4 +51,4 @@ def runman( sim_dir, model_dir, runman_dir = 'runman' ):
 	print "	model_dir :", model_dir
 	print "	runman_dir :", runman_dir
 	os.environ[ 'RUNMAN_PATH' ] = runman_dir
-	subprocess.call( ( simulator, runman_dir + '/runman.g', sim_dir, model_dir ) )
+	subprocess.call( ( simulator, 'runman.g', sim_dir, model_dir ) )

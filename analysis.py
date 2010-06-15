@@ -1,3 +1,5 @@
+import numpy
+
 simulator = 'genesis'
 
 #========
@@ -5,7 +7,7 @@ simulator = 'genesis'
 #========
 import subprocess
 
-def compartment_lengths( out_file, model_dir, script = 'length.g' ):
+def compartment_lengths( out_file, model_dir, script = 'myg-length.g' ):
 	print "[ compartment_lengths ]"
 	print "	out_file :", out_file
 	print "	model_dir :", model_dir
@@ -28,16 +30,6 @@ def _lineage( tree_file ):
 			lineage[ self ] = []
 		else:
 			lineage[ self ] = lineage[ parent ] + [ parent ]
-	
-	#~ with open( tree_file ) as f:
-		#~ reader = csv.reader( f, delimiter = '\t' )
-		#~ for row in reader:
-			#~ self = row[ 0 ]
-			#~ parent = row[ 1 ]
-			#~ if parent == 'none':
-				#~ lineage[ self ] = []
-			#~ else:
-				#~ lineage[ self ] = lineage[ parent ] + [ parent ]
 	
 	return lineage
 
@@ -169,16 +161,12 @@ def distance( physical_out_file, electrotonic_out_file, cell_file, length_file, 
 	elif moving == ():
 		moving = all_compts
 	
-	header = [ '#Compartment' ]
-	for i in reference:
-		header.append( i )
-	
-	physical_matrix = [ header ]
-	electrotonic_matrix = [ header ]
+	physical_matrix = [ ]
+	electrotonic_matrix = [ ]
 	
 	for i in moving:
-		physical_row = [ i ]
-		electrotonic_row = [ i ]
+		physical_row = [ ]
+		electrotonic_row = [ ]
 		
 		for j in reference:
 			( physical, electrotonic ) = _distance_ij( lineage, length, i, j )
@@ -188,13 +176,30 @@ def distance( physical_out_file, electrotonic_out_file, cell_file, length_file, 
 		physical_matrix.append( physical_row )
 		electrotonic_matrix.append( electrotonic_row )
 	
+	header = [ '#Compartment' ]
+	header.extend( reference )
+	
+	physical_matrix_labelled = physical_matrix
+	physical_matrix_labelled = zip( *physical_matrix_labelled )
+	physical_matrix_labelled.insert( 0, moving )
+	physical_matrix_labelled = zip( *physical_matrix_labelled )
+	physical_matrix_labelled.insert( 0, header )
+	
+	electrotonic_matrix_labelled = electrotonic_matrix
+	electrotonic_matrix_labelled = zip( *electrotonic_matrix_labelled )
+	electrotonic_matrix_labelled.insert( 0, moving )
+	electrotonic_matrix_labelled = zip( *electrotonic_matrix_labelled )
+	electrotonic_matrix_labelled.insert( 0, header )
+	
 	with open( physical_out_file, "w" ) as f:
 		writer = csv.writer( f, delimiter = '\t' )
-		writer.writerows( physical_matrix )
+		writer.writerows( physical_matrix_labelled )
 	
 	with open( electrotonic_out_file, "w" ) as f:
 		writer = csv.writer( f, delimiter = '\t' )
-		writer.writerows( electrotonic_matrix )
+		writer.writerows( electrotonic_matrix_labelled )
+	
+	return ( numpy.array( physical_matrix ), numpy.array( electrotonic_matrix ) )
 
 #========
 # Summation distance
@@ -273,3 +278,101 @@ def summation_distance( out_file, single_file, pair_file, reference, moving, sti
 	
 	writer = csv.writer( open( out_file, "w" ), delimiter = '\t' )
 	writer.writerows( data )
+
+#========
+# EPSP characteristics
+#========
+import numpy
+import pylab
+import os
+import os.path as path
+import csv
+def epsp_characteristics(
+	compartments,
+	vm,
+	ed_from_soma,
+	pd_from_soma,
+	t_min = None,
+	t_max = None,
+	out_dir = '.',
+	soma_sub_dir = 'soma',
+	local_sub_dir = 'local',
+	stats_file = 'stats.txt',
+	units = lambda v: `v * 1e3` + ' mV',
+	all_epsps_image_file = 'EPSP.png',
+	amplitude_vs_pd_from_soma_image_file = 'amplitude_vs_pd.png',
+	amplitude_vs_ed_from_soma_image_file = 'amplitude_vs_ed.png',
+	height_file = 'height.csv' ):
+	"""
+	Args:
+		file_path: Path to file that needs to be loaded.
+	
+	Notes:
+		If after skipping empty entries, a line is empty then it will be
+	
+	Returns:
+		A 2-dimensional "array" containing a table read from the given file.
+	"""
+	for ( sub_dir, col ) in zip( ( soma_sub_dir, local_sub_dir ), ( 1, 2 ) ):
+		directory = path.join( out_dir, sub_dir )
+		
+		if path.isfile( directory ):
+			raise ValueError( "'" + directory + "' is a file. Should be a directory." )
+		elif not path.isdir( directory ):
+			os.mkdir( directory )
+		
+		stats_file_f = path.join( directory, stats_file )
+		all_epsps_image_file_f = path.join( directory, all_epsps_image_file )
+		amplitude_vs_pd_from_soma_image_file_f = path.join( directory, amplitude_vs_pd_from_soma_image_file )
+		amplitude_vs_ed_from_soma_image_file_f = path.join( directory, amplitude_vs_ed_from_soma_image_file )
+		height_file_f = path.join( directory, height_file )
+		height = []
+		
+		pylab.figure()
+		for c in compartments:
+			print c,
+			d = vm( c )
+			
+			if t_min != None:
+				d = d[ ( d[ :, 0 ] >= t_min ) ]
+			if t_max != None:
+				d = d[ ( d[ :, 0 ] <= t_max ) ]
+			
+			pylab.plot( d[ :, 0 ], d[ :, col ] )
+			
+			vm_clip = d[ :, col ]
+			height.append( max( vm_clip ) - vm_clip[ 0 ] )
+		pylab.savefig( all_epsps_image_file_f )
+		pylab.close()
+		
+		pylab.figure()
+		pylab.plot( pd_from_soma, height, 'x' )
+		pylab.savefig( amplitude_vs_pd_from_soma_image_file_f )
+		pylab.close()
+		
+		pylab.figure()
+		pylab.plot( ed_from_soma, height, 'x' )
+		pylab.savefig( amplitude_vs_ed_from_soma_image_file_f )
+		pylab.close()
+		
+		avg = numpy.average( height )
+		std = numpy.std( height )
+		cv = std / avg
+		stats = \
+			"Stats for EPSP height:" + "\n" + \
+			"Minimum: " + units( min( height ) ) + "\n" + \
+			"Maximum: " + units( max( height ) ) + "\n" + \
+			"Average: " + units( avg ) + "\n" + \
+			"Standard deviation: " + units( std ) + "\n" + \
+			"Coefficient of variation (CV = std. dev. / avg.): " + `cv` + "\n"
+		
+		print "\n"
+		print stats
+		with open( stats_file_f, 'w' ) as f:
+			f.write( stats )
+		
+		height_data = [ ( "#Compartment", "EPSP_height" ) ]
+		height_data.extend( zip( compartments, height ) )
+		with open( height_file_f, "w" ) as f:
+			writer = csv.writer( f, delimiter = '\t' )
+			writer.writerows( height_data )
