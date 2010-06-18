@@ -287,6 +287,7 @@ import pylab
 import os
 import os.path as path
 import csv
+import mypy
 def epsp_characteristics(
 	compartments,
 	vm,
@@ -316,10 +317,7 @@ def epsp_characteristics(
 	for ( sub_dir, col ) in zip( ( soma_sub_dir, local_sub_dir ), ( 1, 2 ) ):
 		directory = path.join( out_dir, sub_dir )
 		
-		if path.isfile( directory ):
-			raise ValueError( "'" + directory + "' is a file. Should be a directory." )
-		elif not path.isdir( directory ):
-			os.mkdir( directory )
+		mypy.require_dir( directory )
 		
 		stats_file_f = path.join( directory, stats_file )
 		all_epsps_image_file_f = path.join( directory, all_epsps_image_file )
