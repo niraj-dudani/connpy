@@ -331,9 +331,9 @@ def epsp_characteristics(
 			print c,
 			d = vm( c )
 			
-			if t_min != None:
+			if t_min != None and len( d ) > 0:
 				d = d[ ( d[ :, 0 ] >= t_min ) ]
-			if t_max != None:
+			if t_max != None and len( d ) > 0:
 				d = d[ ( d[ :, 0 ] <= t_max ) ]
 			
 			pylab.plot( d[ :, 0 ], d[ :, col ] )

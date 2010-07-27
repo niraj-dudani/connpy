@@ -37,7 +37,7 @@ def file_list( flist ):
 #========
 import os, subprocess
 
-def runman( sim_dir, model_dir, runman_dir = 'runman' ):
+def runman( sim_dir, model_dir, iteration_first = -1, iteration_last = -1 ):
 	"""
 	Equivalent to executing the following shell commands:
 		export RUNMAN_PATH='runman'
@@ -49,6 +49,6 @@ def runman( sim_dir, model_dir, runman_dir = 'runman' ):
 	print "[ runman ]"
 	print "	sim_dir :", sim_dir
 	print "	model_dir :", model_dir
-	print "	runman_dir :", runman_dir
-	os.environ[ 'RUNMAN_PATH' ] = runman_dir
-	subprocess.call( ( simulator, 'runman.g', sim_dir, model_dir ) )
+	print "	iteration_first :", iteration_first
+	print "	iteration_last :", iteration_last
+	subprocess.call( ( simulator, 'runman.g', sim_dir, model_dir, `iteration_first`, `iteration_last` ) )
